@@ -4,8 +4,8 @@ import logging
 import os
 import uuid
 from botocore.exceptions import ClientError
-from config import S3_BUCKET, S3_KEY, S3_SECRET
-from filters import file_type
+from config import S3_BUCKET, S3_KEY, S3_SECRET, UPLOAD_FOLDER
+#from filters import file_type
 from flask import Flask, render_template, request, redirect
 from flask_bootstrap import Bootstrap #provides ready css templates
 from werkzeug import secure_filename
@@ -25,12 +25,11 @@ s3_resource = boto3.resource(
 
 FILENAME_KEYS = ['.photo', '.style']
 ALLOWED_EXTENSIONS = set(['png', 'ico', 'jpg', 'jpeg', 'gif'])
-UPLOAD_FOLDER = '/tmp' #need to figure out what this will be in AWW hosted app?
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 Bootstrap(app)
-app.jinja_env.filters['file_type'] = file_type
+#app.jinja_env.filters['file_type'] = file_type
 
 @app.route('/')
 def index():
@@ -56,8 +55,7 @@ def postFiles():
             fileObj = eval(fkey1)
             if allowed_file(fileObj.filename):
                 filename = secure_filename(fileObj.filename)
-                fileWPath = os.path.join(app.config['UPLOAD_FOLDER'],
-                                filename)
+                fileWPath = os.path.join(UPLOAD_FOLDER, filename)
                 fileObj.save(fileWPath)
                 objName    = hexkey + fkey
                 try:
@@ -91,7 +89,7 @@ def transformPhoto(idkey):
     for fkey in FILENAME_KEYS:
         try:
             key     = idkey + fkey
-            outFile = os.path.join(app.config['UPLOAD_FOLDER'], key)
+            outFile = os.path.join(UPLOAD_FOLDER, key)
             with open (outFile, 'wb') as f:
                 s3.download_fileobj(S3_BUCKET, outFile, f)
         except botocore.exceptions.ClientError as e:
