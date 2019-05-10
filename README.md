@@ -33,6 +33,6 @@ In order to meet the AWS Free Usage Tier, we need to adhere to following -
 3. Keep Put Requests to 2,000 and
 4. 15GB of data transfer each month of one year
 ```
-so please don't experiment too much with the code.
+so please update .env files with your accesskey(S3_KEY), secretkey and bucket details
 ```
 
