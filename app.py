@@ -7,7 +7,8 @@ from botocore.exceptions import ClientError
 from config import S3_BUCKET, S3_KEY, S3_SECRET, UPLOAD_FOLDER
 #from filters import file_type
 from flask import Flask, render_template, request, redirect
-from flask_bootstrap import Bootstrap #provides ready css templates
+#Bootstrap provides ready css templates
+from flask_bootstrap import Bootstrap 
 from werkzeug import secure_filename
 """ Remaining TODO
     1. A big brother Lambda function to delete all obj older than 12 hours
@@ -48,25 +49,24 @@ def postFiles():
     if (style.filename != None and len(style.filename) > 2) and \
        (photo.filename != None and len(photo.filename) > 2) :
         hexkey = uuid.uuid1().hex
-        s3_client = boto3.client('s3')
         for fkey in FILENAME_KEYS:
             #anonymize file in s3
             fkey1 = fkey.split('.')[1]
             fileObj = eval(fkey1)
             if allowed_file(fileObj.filename):
-                filename = secure_filename(fileObj.filename)
-                fileWPath = os.path.join(UPLOAD_FOLDER, filename)
+                filename    = secure_filename(fileObj.filename)
+                fileWPath   = os.path.join(UPLOAD_FOLDER, filename)
                 fileObj.save(fileWPath)
-                objName    = hexkey + fkey
+                objName     = hexkey + fkey
                 try:
-                    resp = s3_client.upload_file(
-                            fileWPath, S3_BUCKET, objName)
+                    s3_resource.Bucket(S3_BUCKET).upload_file(Filename=fileWPath, Key=objName)
                 except ClientError as e:
                     logging.error(e)
                     return ("Couldn't upload to S3 - src:{} tar:{}".format(fileWPath,objName))
             else:
                 logging.info("File {} not acceptable".format(fileObj.filename))
         return hexkey
+        #TODO post selection of files redirect selected files to index.html with dynamic component
     else:
         print("Check files selection - upload cancelled")
         return redirect("/")
@@ -85,14 +85,14 @@ def transformPhoto(idkey):
     file descriptor from S3 bucket
     """
     return "####TODO### - transformPhoto() Not Fully Implemented"
-    s3 = boto3.client('s3')
     for fkey in FILENAME_KEYS:
         try:
             key     = idkey + fkey
             outFile = os.path.join(UPLOAD_FOLDER, key)
-            with open (outFile, 'wb') as f:
-                s3.download_fileobj(S3_BUCKET, outFile, f)
-        except botocore.exceptions.ClientError as e:
+            #either of below should work
+            #s3_resource.Object(S3_BUCKET, key).download_file(outFile)
+            s3_resource.Bucket(S3_BUCKET).download_file(key, outFile)
+        except ClientError as e:
             if e.response['Error']['Code'] == '404':
                 print ("Key: {} object doesn't exist".format(key))
             else:
@@ -116,7 +116,6 @@ def listFiles():
     """
     Utility function to check content of the S3
     """
-    s3_resource = boto3.resource('s3')
     my_bucket   = s3_resource.Bucket(S3_BUCKET)
     summaries   = my_bucket.objects.all()
     return render_template('listFiles.html', my_bucket=my_bucket,
